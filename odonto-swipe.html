@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>OdontoSwipe</title>
+<style>
+:root{--bg:#f4f7fb;--card:#fff;--tx:#14213d;--mut:#667085;--ok:#16a34a;--no:#dc2626;--ac:#0ea5e9;--bd:#e3e8ef;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f172a;--card:#1e293b;--tx:#f1f5f9;--mut:#94a3b8;--bd:#334155}}
+:root[data-theme="dark"]{--bg:#0f172a;--card:#1e293b;--tx:#f1f5f9;--mut:#94a3b8;--bd:#334155}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--tx);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;display:flex;flex-direction:column;align-items:center;overflow:hidden;touch-action:none}
+header{width:100%;max-width:420px;padding:14px 18px 6px;display:flex;justify-content:space-between;align-items:center}
+h1{font-size:20px;margin:0}
+.stats{font-size:14px;color:var(--mut)}
+.bar{width:calc(100% - 36px);max-width:384px;height:6px;background:var(--bd);border-radius:3px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--ac);transition:width .3s}
+.hint{width:100%;max-width:420px;display:flex;justify-content:space-between;padding:10px 22px 0;font-size:13px;font-weight:700}
+.hint .l{color:var(--no)}.hint .r{color:var(--ok)}
+.stage{position:relative;flex:1;width:100%;max-width:420px;padding:12px 18px}
+.card{position:absolute;left:18px;right:18px;top:12px;max-height:380px;height:min(380px,100%);background:var(--card);border:1px solid var(--bd);border-radius:22px;box-shadow:0 10px 30px rgba(0,0,0,.12);display:flex;flex-direction:column;justify-content:center;padding:28px 24px;cursor:grab;user-select:none;will-change:transform}
+.card .tag{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--ac);font-weight:700;margin-bottom:14px}
+.card p{font-size:21px;line-height:1.35;margin:0;font-weight:600}
+.stamp{position:absolute;top:22px;font-size:22px;font-weight:800;border:3px solid;border-radius:10px;padding:2px 10px;opacity:0}
+.stamp.v{right:20px;color:var(--ok);transform:rotate(12deg)}
+.stamp.f{left:20px;color:var(--no);transform:rotate(-12deg)}
+.fb{position:absolute;left:18px;right:18px;bottom:12px;background:var(--card);border:2px solid var(--bd);border-radius:16px;padding:14px 16px;display:none}
+.fb.ok{border-color:var(--ok)}.fb.no{border-color:var(--no)}
+.fb b{display:block;margin-bottom:4px}
+.fb.ok b{color:var(--ok)}.fb.no b{color:var(--no)}
+.fb span{font-size:14px;color:var(--mut);line-height:1.4}
+button{font:inherit;cursor:pointer}
+.next{margin-top:10px;width:100%;padding:11px;border:0;border-radius:12px;background:var(--ac);color:#fff;font-weight:700}
+.btns{display:flex;gap:28px;padding:6px 0 18px}
+.btns button{width:64px;height:64px;border-radius:50%;border:2px solid;background:var(--card);font-size:28px}
+.btns .f{color:var(--no);border-color:var(--no)}.btns .v{color:var(--ok);border-color:var(--ok)}
+.end{text-align:center;padding:40px 24px;display:none}
+.end h2{font-size:28px;margin:0 0 8px}.end .big{font-size:56px;font-weight:800;color:var(--ac)}
+.end button{margin-top:18px;padding:12px 26px;border:0;border-radius:12px;background:var(--ac);color:#fff;font-weight:700}
+</style>
+</head>
+<body>
+<header><h1>🦷 OdontoSwipe</h1><div class="stats" id="stats">Aciertos: 0</div></header>
+<div class="bar"><i id="prog"></i></div>
+<div class="hint"><span class="l">← FALSO</span><span class="r">VERDADERO →</span></div>
+<div class="stage" id="stage">
+  <div class="fb" id="fb"><b id="fbt"></b><span id="fbx"></span><button class="next" id="next">Siguiente</button></div>
+</div>
+<div class="btns" id="btns"><button class="f" id="bf" aria-label="Falso">✕</button><button class="v" id="bv" aria-label="Verdadero">✓</button></div>
+<div class="end" id="end"><div class="big" id="score"></div><h2 id="msg"></h2><p id="sub" style="color:var(--mut)"></p><button id="again">Jugar de nuevo</button></div>
+
+<script>
+const Q=[
+["Anatomía","El esmalte es el tejido más duro del cuerpo humano.",true,"El esmalte está mineralizado en ~96% con hidroxiapatita."],
+["Anatomía","Un adulto tiene 32 dientes permanentes contando los terceros molares.",true,"8 incisivos, 4 caninos, 8 premolares y 12 molares."],
+["Cariología","La caries se produce únicamente por comer azúcar.",false,"Es multifactorial: bacterias (S. mutans), sustrato, huésped susceptible y tiempo."],
+["Cariología","El flúor ayuda a remineralizar el esmalte.",true,"Favorece la formación de fluorapatita, más resistente a los ácidos."],
+["Anatomía","La pulpa dental contiene solo tejido mineralizado.",false,"Es tejido conectivo laxo con vasos sanguíneos y nervios."],
+["Anatomía","El primer molar superior suele tener tres raíces.",true,"Dos vestibulares y una palatina."],
+["Periodoncia","La gingivitis provoca pérdida irreversible de hueso alveolar.",false,"La gingivitis es reversible; la pérdida ósea es propia de la periodontitis."],
+["Odontopediatría","La dentición temporal consta de 20 dientes.",true,"8 incisivos, 4 caninos y 8 molares."],
+["Anatomía","El cemento radicular recubre la corona del diente.",false,"El cemento cubre la raíz; el esmalte cubre la corona."],
+["Anestesia","La articaína es un anestésico local tipo amida.",true,"Se usa mucho en odontología por su buena difusión en hueso."],
+["Odontopediatría","Los premolares están presentes en la dentición temporal.",false,"Los premolares solo aparecen en la dentición permanente."],
+["Prevención","Se recomienda cepillarse al menos dos veces al día con pasta fluorada.",true,"Es la medida básica más eficaz contra la caries."],
+["Anatomía","El nervio alveolar inferior es rama del nervio maxilar (V2).",false,"Es rama del nervio mandibular (V3)."],
+["Endodoncia","El hipoclorito de sodio es un irrigante habitual en endodoncia.",true,"Disuelve tejido orgánico y tiene acción antimicrobiana."],
+["Odontopediatría","Los dientes temporales no necesitan tratamiento porque se caen solos.",false,"Su caries puede causar dolor, infección y afectar a los permanentes."]
+];
+const $=id=>document.getElementById(id);
+let deck,i,hits,card,busy;
+function shuffle(a){return a.map(x=>[Math.random(),x]).sort((p,q)=>p[0]-q[0]).map(x=>x[1])}
+function start(){deck=shuffle(Q);i=0;hits=0;busy=false;$('end').style.display='none';$('stage').style.display='';$('btns').style.display='';document.querySelector('.hint').style.display='';show()}
+function show(){
+  $('fb').style.display='none';busy=false;
+  $('stats').textContent='Aciertos: '+hits;
+  $('prog').style.width=(i/deck.length*100)+'%';
+  if(i>=deck.length)return finish();
+  const q=deck[i];
+  card=document.createElement('div');card.className='card';
+  card.innerHTML='<div class="stamp v">VERDADERO</div><div class="stamp f">FALSO</div><div class="tag"></div><p></p>';
+  card.querySelector('.tag').textContent=q[0];card.querySelector('p').textContent=q[1];
+  $('stage').appendChild(card);bind(card);
+}
+function bind(c){
+  let sx=0,dx=0,drag=false;
+  c.onpointerdown=e=>{if(busy)return;drag=true;sx=e.clientX;c.setPointerCapture(e.pointerId);c.style.transition='none'};
+  c.onpointermove=e=>{if(!drag)return;dx=e.clientX-sx;pose(c,dx)};
+  const up=()=>{if(!drag)return;drag=false;c.style.transition='transform .25s';if(Math.abs(dx)>100)answer(dx>0);else{pose(c,0)}dx=0};
+  c.onpointerup=up;c.onpointercancel=up;
+}
+function pose(c,dx){
+  c.style.transform=`translateX(${dx}px) rotate(${dx/18}deg)`;
+  const o=Math.min(Math.abs(dx)/100,1);
+  c.querySelector('.stamp.v').style.opacity=dx>0?o:0;
+  c.querySelector('.stamp.f').style.opacity=dx<0?o:0;
+}
+function answer(right){
+  if(busy||!card)return;busy=true;
+  const q=deck[i],ok=right===q[2];if(ok)hits++;
+  const c=card;c.style.transition='transform .35s,opacity .35s';
+  c.style.transform=`translateX(${right?500:-500}px) rotate(${right?25:-25}deg)`;c.style.opacity=0;
+  setTimeout(()=>c.remove(),350);
+  const fb=$('fb');fb.className='fb '+(ok?'ok':'no');
+  $('fbt').textContent=(ok?'✅ ¡Correcto! ':'❌ Incorrecto. ')+'Era '+(q[2]?'VERDADERO':'FALSO');
+  $('fbx').textContent=q[3];fb.style.display='block';
+  $('stats').textContent='Aciertos: '+hits;
+  i++;
+}
+function finish(){
+  $('stage').style.display='none';$('btns').style.display='none';document.querySelector('.hint').style.display='none';
+  const p=hits/deck.length;
+  $('score').textContent=hits+' / '+deck.length;
+  $('msg').textContent=p>=.8?'¡Excelente, futuro/a colega! 🎉':p>=.5?'¡Buen trabajo, sigue repasando! 💪':'A repasar un poco más 📚';
+  $('sub').textContent='Precisión: '+Math.round(p*100)+'%';
+  $('end').style.display='block';
+}
+$('next').onclick=()=>{if(busy)show()};
+$('bf').onclick=()=>answer(false);$('bv').onclick=()=>answer(true);
+$('again').onclick=start;
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowLeft')answer(false);
+  else if(e.key==='ArrowRight')answer(true);
+  else if((e.key==='Enter'||e.key===' ')&&busy)show();
+});
+start();
+</script>
+</body>
+</html>
